@@ -5,16 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  ArrowLeft, MapPin, Calendar, Camera, 
-  Maximize, RotateCcw, Share2, Download,
-  Image as ImageIcon, Info, Play
+import {
+  ArrowLeft, MapPin, Calendar, Camera,
+  Share2, Download, Image as ImageIcon, Info
 } from "lucide-react";
+
+// ✅ import PhotoSphereViewer (module build)
+import { Viewer } from "@photo-sphere-viewer/core";
+import "@photo-sphere-viewer/core/index.css";
+import MiniMap from "@/components/MiniMap";
+
 
 interface Monastery {
   id: string;
   name: string;
   location: string;
+  lat: number,
+  lng: number,
   description: string;
   "360_image_url": string;
   thumbnail: string;
@@ -27,93 +34,72 @@ const TourDetail = () => {
   const { id } = useParams();
   const [monastery, setMonastery] = useState<Monastery | null>(null);
   const [loading, setLoading] = useState(true);
-  const [viewerLoaded, setViewerLoaded] = useState(false);
   const viewerRef = useRef<HTMLDivElement>(null);
-  const viewerInstanceRef = useRef<any>(null);
+  const viewerInstanceRef = useRef<Viewer | null>(null);
 
+  // Load monastery details
   useEffect(() => {
     const loadMonastery = async () => {
       try {
-        const response = await fetch('/data/monasteries.json');
+        const response = await fetch("/data/monasteries.json");
         const data = await response.json();
         const foundMonastery = data.find((m: Monastery) => m.id === id);
         setMonastery(foundMonastery || null);
-        setLoading(false);
       } catch (error) {
-        console.error('Error loading monastery:', error);
+        console.error("Error loading monastery:", error);
+      } finally {
         setLoading(false);
       }
     };
-
     loadMonastery();
   }, [id]);
 
+  // Init PhotoSphere Viewer
   useEffect(() => {
-    if (monastery && viewerRef.current && !viewerLoaded) {
-      // Load PhotoSphereViewer script dynamically
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/photo-sphere-viewer@5/dist/photo-sphere-viewer.js';
-      script.onload = () => {
-        // Initialize viewer
-        if (window.PhotoSphereViewer && viewerRef.current) {
-          try {
-            viewerInstanceRef.current = new window.PhotoSphereViewer.Viewer({
-              container: viewerRef.current,
-              panorama: monastery["360_image_url"],
-              caption: `${monastery.name} - Virtual Tour`,
-              touchmoveTwoFingers: true,
-              mousewheelCtrlKey: true,
-              navbar: [
-                'zoom',
-                'move',
-                'fullscreen',
-                {
-                  id: 'custom-button',
-                  content: '🏠',
-                  title: 'Reset View',
-                  className: 'custom-button',
-                  onClick: () => {
-                    viewerInstanceRef.current?.animate({
-                      yaw: 0,
-                      pitch: 0,
-                    });
-                  }
-                }
-              ],
-              loadingImg: '/placeholder.svg',
-              size: {
-                height: '500px'
-              }
-            });
-            setViewerLoaded(true);
-          } catch (error) {
-            console.error('Error initializing PhotoSphereViewer:', error);
-          }
-        }
-      };
-      document.head.appendChild(script);
-
-      // Load CSS
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/photo-sphere-viewer@5/dist/photo-sphere-viewer.css';
-      document.head.appendChild(link);
-
-      return () => {
-        if (viewerInstanceRef.current) {
-          viewerInstanceRef.current.destroy();
-        }
-      };
+    if (monastery && viewerRef.current && !viewerInstanceRef.current) {
+      viewerInstanceRef.current = new Viewer({
+        container: viewerRef.current,
+        panorama: monastery["360_image_url"],
+        caption: `${monastery.name} - Virtual Tour`,
+        touchmoveTwoFingers: true,
+        mousewheelCtrlKey: true,
+        navbar: [
+          "zoom",
+          "move",
+          "fullscreen",
+          {
+            id: "reset-view",
+            content: "🏠",
+            title: "Reset View",
+            className: "custom-button",
+            onClick: () => {
+              viewerInstanceRef.current?.animate({
+                yaw: 0,
+                pitch: 0,
+                speed: 1000,
+              });
+            },
+          },
+        ],
+      });
     }
-  }, [monastery, viewerLoaded]);
 
+    return () => {
+      viewerInstanceRef.current?.destroy();
+      viewerInstanceRef.current = null;
+    };
+  }, [monastery]);
+
+  // ---- UI RENDER ----
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
         <div className="flex items-center justify-center min-h-[80vh]">
           <div className="text-center">
-            <div className="animate-pulse text-2xl monastery-heading">Loading Virtual Tour...</div>
+            <div className="animate-pulse text-2xl monastery-heading">
+              Loading Virtual Tour...
+            </div>
           </div>
         </div>
       </div>
@@ -158,7 +144,7 @@ const TourDetail = () => {
                 Back to Tours
               </Link>
             </Button>
-            
+
             <div className="flex gap-2">
               <Button variant="outline" size="sm">
                 <Share2 className="h-4 w-4 mr-2" />
@@ -180,11 +166,11 @@ const TourDetail = () => {
                 </Badge>
                 <Badge variant="outline">{monastery.tradition} Tradition</Badge>
               </div>
-              
+
               <h1 className="text-4xl font-bold monastery-heading mb-4">
                 {monastery.name}
               </h1>
-              
+
               <div className="flex items-center gap-6 text-muted-foreground mb-6">
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
@@ -219,26 +205,19 @@ const TourDetail = () => {
 
       {/* 360° Viewer */}
       <section className="py-8">
-        <div className="container mx-auto px-4">
-          <Card className="monastery-border overflow-hidden">
-            <div className="relative">
-              {!viewerLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-muted-foreground">Loading 360° viewer...</p>
-                  </div>
-                </div>
-              )}
-              <div 
-                ref={viewerRef} 
-                className="w-full"
-                style={{ height: '500px' }}
-              />
-            </div>
-          </Card>
-        </div>
-      </section>
+  <div className="container mx-auto px-4">
+    <Card className="monastery-border overflow-hidden">
+      <div className="relative w-full" style={{ height: "500px" }}>
+        <div ref={viewerRef} className="w-full h-full" />
+        {/* Mini Map overlay */}
+        {monastery.lat && monastery.lng && (
+          <MiniMap lat={monastery.lat} lng={monastery.lng} name={monastery.name} />
+        )}
+      </div>
+    </Card>
+  </div>
+</section>
+
 
       {/* Content Tabs */}
       <section className="py-8">
@@ -259,11 +238,13 @@ const TourDetail = () => {
                   <p className="text-lg text-muted-foreground leading-relaxed mb-6">
                     {monastery.description}
                   </p>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <h3 className="font-semibold mb-2">Tradition</h3>
-                      <p className="text-muted-foreground">{monastery.tradition} Buddhism</p>
+                      <p className="text-muted-foreground">
+                        {monastery.tradition} Buddhism
+                      </p>
                     </div>
                     <div>
                       <h3 className="font-semibold mb-2">Founded</h3>
@@ -275,7 +256,9 @@ const TourDetail = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold mb-2">Tour Type</h3>
-                      <p className="text-muted-foreground">360° Virtual Experience</p>
+                      <p className="text-muted-foreground">
+                        360° Virtual Experience
+                      </p>
                     </div>
                   </div>
                 </CardContent>
@@ -285,7 +268,10 @@ const TourDetail = () => {
             <TabsContent value="gallery">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {monastery.photo_gallery.map((image, index) => (
-                  <Card key={index} className="overflow-hidden group cursor-pointer hover:monastery-glow transition-all duration-300">
+                  <Card
+                    key={index}
+                    className="overflow-hidden group cursor-pointer hover:monastery-glow transition-all duration-300"
+                  >
                     <div className="aspect-[4/3] relative">
                       <img
                         src={image}
@@ -305,7 +291,9 @@ const TourDetail = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="monastery-border">
                   <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Related Monasteries</h3>
+                    <h3 className="text-lg font-semibold mb-4">
+                      Related Monasteries
+                    </h3>
                     <div className="space-y-3">
                       <Button variant="outline" className="w-full justify-start" asChild>
                         <Link to="/tours/pemayangtse">
@@ -350,12 +338,5 @@ const TourDetail = () => {
     </div>
   );
 };
-
-// Add PhotoSphereViewer to window type
-declare global {
-  interface Window {
-    PhotoSphereViewer: any;
-  }
-}
 
 export default TourDetail;
