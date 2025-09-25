@@ -14,7 +14,8 @@
       "/src/assets/hero-monastery.jpg"
     ],
     "tradition": "Kagyu",
-    "founded": "1740 AD"
+    "founded": "1740 AD",
+    "events": ["losar", "saga-dawa", "dashain", "buddha-jayanti"]
   },
   {
     "id": "pemayangtse",
@@ -31,7 +32,8 @@
       "/src/assets/hero-monastery.jpg"
     ],
     "tradition": "Nyingma",
-    "founded": "1705 AD"
+    "founded": "1705 AD",
+    "events": ["losar", "dashain", "buddha-jayanti"]
   },
   {
     "id": "tashiding",
@@ -48,6 +50,7 @@
       "/src/assets/monastery-2.jpg"
     ],
     "tradition": "Nyingma",
-    "founded": "1641 AD"
+    "founded": "1641 AD",
+    "events": ["bhumchu", "dashain", "buddha-jayanti"]
   }
 ]

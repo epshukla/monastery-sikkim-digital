@@ -28,7 +28,103 @@ interface Monastery {
   photo_gallery: string[];
   tradition: string;
   founded: string;
+  events?: string[];
 }
+
+interface Event {
+  id: string;
+  name: string;
+  description: string;
+  month: string;
+  season: string;
+  type: string;
+  location: string;
+  monasteries: string[];
+  duration: string;
+  significance: string;
+}
+
+// Component for showing monastery events
+const MonasteryEvents = ({ monasteryId }: { monasteryId: string }) => {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const response = await fetch("/data/events.json");
+        const data = await response.json();
+        const monasteryEvents = data.filter((event: Event) => 
+          event.monasteries.includes(monasteryId)
+        );
+        setEvents(monasteryEvents);
+      } catch (error) {
+        console.error("Error loading events:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadEvents();
+  }, [monasteryId]);
+
+  if (loading) {
+    return (
+      <Card className="monastery-border">
+        <CardContent className="p-6">
+          <div className="animate-pulse">
+            <div className="h-4 bg-muted rounded w-3/4 mb-4"></div>
+            <div className="space-y-2">
+              <div className="h-3 bg-muted rounded"></div>
+              <div className="h-3 bg-muted rounded w-2/3"></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="monastery-border">
+      <CardContent className="p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Calendar className="h-4 w-4" />
+          Festivals & Events
+        </h3>
+        {events.length > 0 ? (
+          <div className="space-y-3">
+            {events.map((event) => (
+              <div key={event.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
+                <div className="flex items-start justify-between mb-2">
+                  <h4 className="font-medium text-sm">{event.name}</h4>
+                  <Badge variant="outline" className="text-xs">{event.month}</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                  {event.description}
+                </p>
+                <div className="flex items-center justify-between">
+                  <Badge className="text-xs" variant="secondary">{event.type}</Badge>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/calendar" className="text-xs">
+                      View Details
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground">
+            <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No events found for this monastery</p>
+            <Button variant="outline" size="sm" className="mt-2" asChild>
+              <Link to="/calendar">View All Events</Link>
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 const TourDetail = () => {
   const { id } = useParams();
@@ -289,27 +385,7 @@ const TourDetail = () => {
 
             <TabsContent value="explore">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="monastery-border">
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">
-                      Related Monasteries
-                    </h3>
-                    <div className="space-y-3">
-                      <Button variant="outline" className="w-full justify-start" asChild>
-                        <Link to="/tours/pemayangtse">
-                          <Camera className="h-4 w-4 mr-2" />
-                          Pemayangtse Monastery
-                        </Link>
-                      </Button>
-                      <Button variant="outline" className="w-full justify-start" asChild>
-                        <Link to="/tours/tashiding">
-                          <Camera className="h-4 w-4 mr-2" />
-                          Tashiding Monastery
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <MonasteryEvents monasteryId={monastery.id} />
 
                 <Card className="monastery-border">
                   <CardContent className="p-6">
@@ -325,6 +401,12 @@ const TourDetail = () => {
                         <Link to="/monasteries">
                           <MapPin className="h-4 w-4 mr-2" />
                           All Monasteries
+                        </Link>
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start" asChild>
+                        <Link to="/calendar">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Festival Calendar
                         </Link>
                       </Button>
                     </div>
