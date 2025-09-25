@@ -148,13 +148,13 @@ const Calendar = () => {
       <Navigation />
       
       {/* Hero Section */}
-      <section className="py-16 monastery-gradient text-white">
+      <section className="py-16 bg-gradient-monastery text-primary-foreground">
         <div className="container mx-auto px-4 text-center">
-          <CalendarIcon className="h-16 w-16 mx-auto mb-6 text-monastery-gold" />
-          <h1 className="text-5xl font-bold monastery-heading mb-6">
+          <CalendarIcon className="h-16 w-16 mx-auto mb-6 text-gold" />
+          <h1 className="text-5xl font-bold monastery-heading mb-6 text-primary-foreground">
             Festivals & Events of Sikkim
           </h1>
-          <p className="text-xl max-w-3xl mx-auto opacity-90">
+          <p className="text-xl max-w-3xl mx-auto opacity-90 text-primary-foreground">
             Discover the rich cultural tapestry of Sikkim through its sacred festivals 
             and monastery celebrations. Experience the spiritual heritage that has 
             flourished in the Himalayas for centuries.
