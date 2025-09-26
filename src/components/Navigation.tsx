@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, MapPin, Archive, Calendar, Users, Search, HeartHandshake } from "lucide-react";
+import { Menu, MapPin, Archive, Calendar, Users, Search, HeartHandshake, Route } from "lucide-react";
 
 const navigationItems = [
   { name: "Home", href: "/", icon: null },
@@ -10,6 +10,7 @@ const navigationItems = [
   { name: "Virtual Tours", href: "/tours", icon: Search },
   { name: "Archives", href: "/archives", icon: Archive },
   { name: "Calendar", href: "/calendar", icon: Calendar },
+  { name: "Itinerary", href: "/itinerary", icon: Route },
   { name: "Community", href: "/community", icon: Users },
   { name: "About", href: "/about", icon: null },
   { name: "Support", href: "/support", icon: HeartHandshake },
