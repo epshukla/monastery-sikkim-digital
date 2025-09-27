@@ -8,7 +8,8 @@
     "century": "17th Century",
     "monastery": "Rumtek",
     "category": "Manuscript",
-    "language": "Tibetan"
+    "language": "Tibetan",
+    "pdf_url": "/data/pdfs/rumtek-manuscript.pdf" 
   },
   {
     "id": "mural-1",
@@ -19,7 +20,8 @@
     "century": "18th Century",
     "monastery": "Pemayangtse",
     "category": "Mural",
-    "language": "Visual Art"
+    "language": "Visual Art",
+    "pdf_url": "/data/pdfs/rumtek-manuscript.pdf"
   },
   {
     "id": "thangka-1",

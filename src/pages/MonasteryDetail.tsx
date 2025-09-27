@@ -226,20 +226,26 @@ const MonasteryDetail = () => {
 
                   {/* Audio Guide */}
                   <Card className="monastery-border">
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <Volume2 className="h-5 w-5 text-primary" />
-                        <h3 className="font-semibold">Audio Guide</h3>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Listen to detailed commentary about the monastery's history and significance.
-                      </p>
-                      <Button className="w-full" variant="outline">
-                        <Play className="h-4 w-4 mr-2" />
-                        Play Audio Guide
-                      </Button>
-                    </CardContent>
-                  </Card>
+  <CardContent className="p-6">
+    <div className="flex items-center gap-3 mb-4">
+      <Volume2 className="h-5 w-5 text-primary" />
+      <h3 className="font-semibold">Audio Guide</h3>
+    </div>
+    <p className="text-sm text-muted-foreground mb-4">
+      Listen to detailed commentary about the monastery's history and significance.
+    </p>
+
+    {/* Audio Player */}
+    <audio 
+      controls 
+      className="w-full mt-2"
+    >
+      <source src="data/audio/rumtek-guide.mp3" type="audio/mpeg" />
+      Your browser does not support the audio element.
+    </audio>
+  </CardContent>
+</Card>
+
                 </div>
               </div>
             </TabsContent>

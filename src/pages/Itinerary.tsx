@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+
+import { useLayoutEffect, useState, useEffect, useRef } from "react";
 import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,6 @@ declare global {
   }
 }
 
-// Type declarations for non-typed Google Maps objects
 type GoogleMapsPlace = {
   place_id: string;
   name: string;
@@ -60,10 +60,10 @@ interface ItineraryStop {
   lat: number;
   lng: number;
   type: string;
-  duration: number; // estimated time in minutes
+  duration: number;
 }
 
-const GOOGLE_MAPS_API_KEY = "YOUR_GOOGLE_MAPS_API_KEY"; // Replace with actual API key
+const GOOGLE_MAPS_API_KEY = "AIzaSyBh3nzQxJlX2cY0Ad0rXTgc9-5p59EbMoU";
 
 const Itinerary = () => {
   const [monasteries, setMonasteries] = useState<Monastery[]>([]);
@@ -75,13 +75,13 @@ const Itinerary = () => {
   const [totalDistance, setTotalDistance] = useState<string>("");
   const [totalDuration, setTotalDuration] = useState<string>("");
   const [itineraryName, setItineraryName] = useState<string>("");
-  
+
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const directionsServiceRef = useRef<any>(null);
   const directionsRendererRef = useRef<any>(null);
-  
+
   const { toast } = useToast();
 
   // Load monasteries data
@@ -89,8 +89,22 @@ const Itinerary = () => {
     const loadMonasteries = async () => {
       try {
         const response = await fetch("/data/monasteries.json");
+        if (!response.ok) {
+          throw new Error(`Failed to fetch monasteries: ${response.statusText}`);
+        }
         const data = await response.json();
-        setMonasteries(data);
+        // Validate that each monastery has lat and lng
+        const validMonasteries = data.filter(
+          (m: Monastery) => typeof m.lat === "number" && typeof m.lng === "number"
+        );
+        setMonasteries(validMonasteries);
+        if (validMonasteries.length === 0) {
+          toast({
+            title: "Error",
+            description: "No valid monasteries found with latitude and longitude",
+            variant: "destructive",
+          });
+        }
       } catch (error) {
         console.error("Error loading monasteries:", error);
         toast({
@@ -106,7 +120,7 @@ const Itinerary = () => {
   }, [toast]);
 
   // Initialize Google Maps
-  useEffect(() => {
+  useLayoutEffect(() => {
     const initMap = async () => {
       if (!mapRef.current) return;
 
@@ -119,8 +133,12 @@ const Itinerary = () => {
 
         await loader.load();
 
+        if (!window.google) {
+          throw new Error("Google Maps API not loaded");
+        }
+
         const map = new window.google.maps.Map(mapRef.current, {
-          center: { lat: 27.325, lng: 88.612 }, // Center on Sikkim
+          center: { lat: 27.325, lng: 88.612 },
           zoom: 10,
           mapTypeId: window.google.maps.MapTypeId.TERRAIN,
         });
@@ -133,11 +151,25 @@ const Itinerary = () => {
         });
         directionsRendererRef.current.setMap(map);
 
+        // Add listener for route changes due to dragging
+        directionsRendererRef.current.addListener("directions_changed", () => {
+          const directions = directionsRendererRef.current.getDirections();
+          if (directions && directions.routes[0]) {
+            let totalDist = 0;
+            let totalTime = 0;
+            directions.routes[0].legs.forEach((leg: any) => {
+              if (leg.distance) totalDist += leg.distance.value;
+              if (leg.duration) totalTime += leg.duration.value;
+            });
+            setTotalDistance((totalDist / 1000).toFixed(1) + " km");
+            setTotalDuration(Math.round(totalTime / 60) + " minutes");
+          }
+        });
       } catch (error) {
         console.error("Error loading Google Maps:", error);
         toast({
           title: "Maps Error",
-          description: "Failed to load Google Maps. Please check your API key.",
+          description: "Failed to load Google Maps. Please check your API key or network connection.",
           variant: "destructive",
         });
       }
@@ -150,32 +182,32 @@ const Itinerary = () => {
   useEffect(() => {
     if (!selectedMonastery || !mapInstanceRef.current) return;
 
-    const monastery = monasteries.find(m => m.id === selectedMonastery);
+    const monastery = monasteries.find((m) => m.id === selectedMonastery);
     if (!monastery) return;
 
     setSearchingPlaces(true);
     const service = new window.google.maps.places.PlacesService(mapInstanceRef.current);
     const location = new window.google.maps.LatLng(monastery.lat, monastery.lng);
 
-    // Center map on selected monastery
     mapInstanceRef.current.setCenter(location);
     mapInstanceRef.current.setZoom(12);
 
-    // Clear existing markers
-    markersRef.current.forEach(marker => marker.setMap(null));
+    markersRef.current.forEach((marker) => marker.setMap(null));
     markersRef.current = [];
 
-    // Add monastery marker
+    // Monastery marker
     const monasteryMarker = new window.google.maps.Marker({
       position: location,
       map: mapInstanceRef.current,
       title: monastery.name,
       icon: {
-        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#D4AF37">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-          </svg>
-        `),
+        url:
+          "data:image/svg+xml;charset=UTF-8," +
+          encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#D4AF37">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+          `),
         scaledSize: new window.google.maps.Size(32, 32),
       },
     });
@@ -183,51 +215,54 @@ const Itinerary = () => {
 
     // Search categories
     const categories = [
-      'tourist_attraction',
-      'restaurant',
-      'shopping_mall',
-      'amusement_park',
-      'natural_feature',
-      'point_of_interest'
+      "tourist_attraction",
+      "restaurant",
+      "shopping_mall",
+      "amusement_park",
+      "natural_feature",
+      "point_of_interest",
     ];
 
     const allPlaces: Place[] = [];
     let completedSearches = 0;
 
-    categories.forEach(type => {
+    categories.forEach((type) => {
       const request = {
-        location: location,
-        radius: 25000, // 25km radius
-        type: type as any,
+        location,
+        radius: 25000,
+        type,
       };
 
       service.nearbySearch(request, (results: any, status: any) => {
         if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
           allPlaces.push(...results);
         }
-        
+
         completedSearches++;
         if (completedSearches === categories.length) {
-          // Remove duplicates and filter
-          const uniquePlaces = allPlaces.filter((place, index, self) => 
-            index === self.findIndex(p => p.place_id === place.place_id)
-          ).slice(0, 20); // Limit to 20 places
+          const uniquePlaces = allPlaces
+            .filter(
+              (place, index, self) =>
+                index === self.findIndex((p) => p.place_id === place.place_id)
+            )
+            .slice(0, 20);
 
           setNearbyPlaces(uniquePlaces);
           setSearchingPlaces(false);
 
-          // Add markers for nearby places
-          uniquePlaces.forEach(place => {
+          uniquePlaces.forEach((place) => {
             const marker = new window.google.maps.Marker({
               position: place.geometry.location,
               map: mapInstanceRef.current,
               title: place.name,
               icon: {
-                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#FF6B6B">
-                    <circle cx="12" cy="12" r="8"/>
-                  </svg>
-                `),
+                url:
+                  "data:image/svg+xml;charset=UTF-8," +
+                  encodeURIComponent(`
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#FF6B6B">
+                      <circle cx="12" cy="12" r="8"/>
+                    </svg>
+                  `),
                 scaledSize: new window.google.maps.Size(20, 20),
               },
             });
@@ -236,9 +271,9 @@ const Itinerary = () => {
         }
       });
     });
-  }, [selectedMonastery, monasteries, mapInstanceRef.current]);
+  }, [selectedMonastery, monasteries]);
 
-  // Update route when itinerary stops change
+  // Calculate route when itinerary stops change
   useEffect(() => {
     if (itineraryStops.length > 1 && directionsServiceRef.current && directionsRendererRef.current) {
       calculateRoute();
@@ -248,29 +283,31 @@ const Itinerary = () => {
   const calculateRoute = () => {
     if (!directionsServiceRef.current || !directionsRendererRef.current || itineraryStops.length < 2) return;
 
-    const waypoints = itineraryStops.slice(1, -1).map(stop => ({
+    const waypoints = itineraryStops.slice(1, -1).map((stop) => ({
       location: new window.google.maps.LatLng(stop.lat, stop.lng),
       stopover: true,
     }));
 
     const request = {
       origin: new window.google.maps.LatLng(itineraryStops[0].lat, itineraryStops[0].lng),
-      destination: new window.google.maps.LatLng(itineraryStops[itineraryStops.length - 1].lat, itineraryStops[itineraryStops.length - 1].lng),
-      waypoints: waypoints,
+      destination: new window.google.maps.LatLng(
+        itineraryStops[itineraryStops.length - 1].lat,
+        itineraryStops[itineraryStops.length - 1].lng
+      ),
+      waypoints,
       travelMode: window.google.maps.TravelMode.DRIVING,
       optimizeWaypoints: true,
     };
 
     directionsServiceRef.current.route(request, (result: any, status: any) => {
       if (status === window.google.maps.DirectionsStatus.OK && result) {
-        directionsRendererRef.current?.setDirections(result);
-        
-        // Calculate total distance and duration
+        directionsRendererRef.current.setDirections(result);
+
         let totalDist = 0;
         let totalTime = 0;
-        
+
         if (result.routes[0]) {
-          result.routes[0].legs.forEach(leg => {
+          result.routes[0].legs.forEach((leg: any) => {
             if (leg.distance) totalDist += leg.distance.value;
             if (leg.duration) totalTime += leg.duration.value;
           });
@@ -278,6 +315,12 @@ const Itinerary = () => {
 
         setTotalDistance((totalDist / 1000).toFixed(1) + " km");
         setTotalDuration(Math.round(totalTime / 60) + " minutes");
+      } else {
+        toast({
+          title: "Route Error",
+          description: "Failed to calculate route. Please try again.",
+          variant: "destructive",
+        });
       }
     });
   };
@@ -288,11 +331,11 @@ const Itinerary = () => {
       name: place.name,
       lat: place.geometry.location.lat(),
       lng: place.geometry.location.lng(),
-      type: place.types[0] || 'point_of_interest',
-      duration: 60, // Default 1 hour
+      type: place.types[0] || "point_of_interest",
+      duration: 60,
     };
 
-    setItineraryStops(prev => [...prev, newStop]);
+    setItineraryStops((prev) => [...prev, newStop]);
     toast({
       title: "Added to Itinerary",
       description: `${place.name} has been added to your itinerary`,
@@ -300,7 +343,7 @@ const Itinerary = () => {
   };
 
   const removeFromItinerary = (stopId: string) => {
-    setItineraryStops(prev => prev.filter(stop => stop.id !== stopId));
+    setItineraryStops((prev) => prev.filter((stop) => stop.id !== stopId));
     toast({
       title: "Removed from Itinerary",
       description: "Stop has been removed from your itinerary",
@@ -309,15 +352,11 @@ const Itinerary = () => {
 
   const optimizeRoute = () => {
     if (itineraryStops.length > 2) {
-      // Simple optimization - in a real app, you'd use more sophisticated algorithms
       const firstStop = itineraryStops[0];
       const lastStop = itineraryStops[itineraryStops.length - 1];
       const middleStops = itineraryStops.slice(1, -1);
-      
-      // Shuffle middle stops for demonstration
       const shuffled = [...middleStops].sort(() => Math.random() - 0.5);
       setItineraryStops([firstStop, ...shuffled, lastStop]);
-      
       toast({
         title: "Route Optimized",
         description: "Your itinerary has been optimized for efficiency",
@@ -344,10 +383,9 @@ const Itinerary = () => {
       createdAt: new Date().toISOString(),
     };
 
-    // Save to localStorage for demo purposes
-    const savedItineraries = JSON.parse(localStorage.getItem('monastery_itineraries') || '[]');
+    const savedItineraries = JSON.parse(localStorage.getItem("monastery_itineraries") || "[]");
     savedItineraries.push(itinerary);
-    localStorage.setItem('monastery_itineraries', JSON.stringify(savedItineraries));
+    localStorage.setItem("monastery_itineraries", JSON.stringify(savedItineraries));
 
     toast({
       title: "Itinerary Saved",
@@ -355,13 +393,46 @@ const Itinerary = () => {
     });
   };
 
+  const downloadItinerary = () => {
+    if (!itineraryName.trim()) {
+      toast({
+        title: "Name Required",
+        description: "Please enter a name for your itinerary",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const itinerary = {
+      name: itineraryName,
+      baseMonastery: selectedMonastery,
+      stops: itineraryStops,
+      totalDistance,
+      totalDuration,
+      createdAt: new Date().toISOString(),
+    };
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(itinerary, null, 2));
+    const downloadAnchor = document.createElement("a");
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `${itineraryName}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+
+    toast({
+      title: "Itinerary Downloaded",
+      description: `"${itineraryName}" has been downloaded as a JSON file`,
+    });
+  };
+
   const getPlaceTypeIcon = (types: string[]) => {
-    if (types.includes('restaurant') || types.includes('food')) return '🍽️';
-    if (types.includes('tourist_attraction')) return '🏛️';
-    if (types.includes('shopping_mall') || types.includes('store')) return '🛍️';
-    if (types.includes('amusement_park')) return '🎢';
-    if (types.includes('natural_feature')) return '🏔️';
-    return '📍';
+    if (types.includes("restaurant") || types.includes("food")) return "🍽️";
+    if (types.includes("tourist_attraction")) return "🏛️";
+    if (types.includes("shopping_mall") || types.includes("store")) return "🛍️";
+    if (types.includes("amusement_park")) return "🎢";
+    if (types.includes("natural_feature")) return "🏔️";
+    return "📍";
   };
 
   if (loading) {
@@ -382,8 +453,6 @@ const Itinerary = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
-      {/* Hero Section */}
       <section className="py-16 bg-gradient-monastery text-primary-foreground">
         <div className="container mx-auto px-4 text-center">
           <Route className="h-16 w-16 mx-auto mb-6 text-gold" />
@@ -396,12 +465,9 @@ const Itinerary = () => {
           </p>
         </div>
       </section>
-
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Panel - Controls */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Monastery Selection */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -424,21 +490,24 @@ const Itinerary = () => {
                 </Select>
               </CardContent>
             </Card>
-
-            {/* Nearby Places */}
             {selectedMonastery && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MapPin className="h-5 w-5" />
                     Nearby Attractions
-                    {searchingPlaces && <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full ml-2" />}
+                    {searchingPlaces && (
+                      <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full ml-2" />
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 max-h-96 overflow-y-auto">
                     {nearbyPlaces.map((place) => (
-                      <div key={place.place_id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div
+                        key={place.place_id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span>{getPlaceTypeIcon(place.types)}</span>
@@ -457,9 +526,9 @@ const Itinerary = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => addToItinerary(place)}
-                          disabled={itineraryStops.some(stop => stop.id === place.place_id)}
+                          disabled={itineraryStops.some((stop) => stop.id === place.place_id)}
                         >
-                          {itineraryStops.some(stop => stop.id === place.place_id) ? (
+                          {itineraryStops.some((stop) => stop.id === place.place_id) ? (
                             <Minus className="h-4 w-4" />
                           ) : (
                             <Plus className="h-4 w-4" />
@@ -471,8 +540,6 @@ const Itinerary = () => {
                 </CardContent>
               </Card>
             )}
-
-            {/* Current Itinerary */}
             {itineraryStops.length > 0 && (
               <Card>
                 <CardHeader>
@@ -484,7 +551,10 @@ const Itinerary = () => {
                 <CardContent>
                   <div className="space-y-3">
                     {itineraryStops.map((stop, index) => (
-                      <div key={stop.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div
+                        key={stop.id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
                         <div className="flex items-center gap-3">
                           <Badge variant="outline">{index + 1}</Badge>
                           <div>
@@ -502,7 +572,6 @@ const Itinerary = () => {
                       </div>
                     ))}
                   </div>
-
                   {totalDistance && totalDuration && (
                     <div className="mt-4 p-3 bg-muted rounded-lg">
                       <div className="flex items-center justify-between text-sm">
@@ -517,7 +586,6 @@ const Itinerary = () => {
                       </div>
                     </div>
                   )}
-
                   <div className="flex gap-2 mt-4">
                     <Button
                       variant="outline"
@@ -528,8 +596,16 @@ const Itinerary = () => {
                       <Shuffle className="h-4 w-4 mr-1" />
                       Optimize
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={downloadItinerary}
+                      disabled={!itineraryName.trim() || itineraryStops.length === 0}
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Download
+                    </Button>
                   </div>
-
                   <div className="mt-4 space-y-2">
                     <Input
                       placeholder="Enter itinerary name..."
@@ -549,8 +625,6 @@ const Itinerary = () => {
               </Card>
             )}
           </div>
-
-          {/* Right Panel - Map */}
           <div className="lg:col-span-2">
             <Card className="h-full">
               <CardHeader>
@@ -560,11 +634,7 @@ const Itinerary = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <div 
-                  ref={mapRef} 
-                  className="w-full h-[600px] rounded-b-lg"
-                  style={{ minHeight: '600px' }}
-                />
+                <div ref={mapRef} className="w-full h-[600px] rounded-b-lg" style={{ minHeight: "600px" }} />
                 <div id="directionsPanel" className="p-4 max-h-48 overflow-y-auto text-sm" />
               </CardContent>
             </Card>

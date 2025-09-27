@@ -23,6 +23,20 @@ const Tours = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // For Imagine Your Trip Section
+  const [thinking, setThinking] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
+
+  const handlePlayVideo = () => {
+    setThinking(true);
+    setShowVideo(false);
+
+    setTimeout(() => {
+      setThinking(false);
+      setShowVideo(true);
+    }, 2000);
+  };
+
   useEffect(() => {
     const loadMonasteries = async () => {
       try {
@@ -202,6 +216,48 @@ const Tours = () => {
           )}
         </div>
       </section>
+
+      {/* Imagine Your Trip Section */}
+      <section className="py-16 bg-gradient-monastery text-primary-foreground">
+  <div className="container mx-auto px-4 text-center">
+    <h2 className="text-3xl font-bold mb-4">Imagine Your Trip</h2>
+    <p className="mb-8 text-lg opacity-90">
+      Upload an image to visualize your personalized monastery journey!
+    </p>
+
+    <div className="flex flex-col items-center gap-4">
+      <input
+        type="file"
+        accept="image/*"
+        className="bg-white text-black px-4 py-2 rounded-md"
+      />
+      <button
+        onClick={handlePlayVideo}
+        className="bg-white text-purple-700 px-6 py-3 rounded-md font-semibold hover:opacity-90 transition"
+      >
+        Imagine & Play
+      </button>
+    </div>
+
+    {thinking && (
+      <p className="mt-6 text-xl animate-pulse">
+        Thinking about your trip...
+      </p>
+    )}
+
+    {showVideo && (
+      <div className="mt-8">
+        <video
+          src="/data/videos/spm.mp4"
+          controls
+          autoPlay
+          className="mx-auto rounded-md shadow-lg max-w-full"
+        />
+      </div>
+    )}
+  </div>
+</section>
+
 
       {/* CTA Section */}
       <section className="py-16 bg-gradient-monastery text-primary-foreground">

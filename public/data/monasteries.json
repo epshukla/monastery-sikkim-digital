@@ -6,7 +6,7 @@
     "lat": 27.325,
     "lng": 88.612,
     "description": "Rumtek Monastery, officially known as the Dharma Chakra Centre, is the largest monastery in Sikkim and serves as the seat of the Karmapa. This magnificent structure is a perfect replica of the original Tsurphu Monastery in Tibet.",
-    "360_image_url": "/data/images/tt2.jpg",
+    "360_image_url": "/data/images/tt5.jpg",
     "thumbnail": "/src/assets/monastery-1.jpg",
     "photo_gallery": [
       "/src/assets/monastery-1.jpg",
@@ -24,7 +24,7 @@
     "lat": 27.325,
     "lng": 88.612,
     "description": "One of the oldest and most important monasteries in Sikkim, Pemayangtse was built in 1705. It houses a remarkable seven-tiered wooden sculpture depicting the celestial palace of Guru Rinpoche.",
-    "360_image_url": "/images/tt2.jpg",
+    "360_image_url": "/data/images/tt6.jpg",
     "thumbnail": "/src/assets/monastery-2.jpg",
     "photo_gallery": [
       "/src/assets/monastery-2.jpg",

@@ -22,6 +22,7 @@ interface ArchiveItem {
   monastery: string;
   category: string;
   language: string;
+  pdf_url?: string;
 }
 
 const Archives = () => {
@@ -283,74 +284,113 @@ const Archives = () => {
                       </Card>
                     </DialogTrigger>
                     
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle className="text-2xl monastery-heading">
-                          {item.title}
-                        </DialogTitle>
-                      </DialogHeader>
-                      
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <div className="aspect-[3/4] overflow-hidden rounded-lg">
-                            <img
-                              src={item.image_url}
-                              alt={item.title}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                          
-                          <div className="flex gap-2">
-                            <Button size="sm" className="flex-1">
-                              <Maximize className="h-4 w-4 mr-2" />
-                              Full Screen
-                            </Button>
-                            <Button size="sm" variant="outline" className="flex-1">
-                              <Download className="h-4 w-4 mr-2" />
-                              Download
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-6">
-                          <div>
-                            <h3 className="text-lg font-semibold mb-3">Description</h3>
-                            <p className="text-muted-foreground leading-relaxed">
-                              {item.description}
-                            </p>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <h4 className="font-medium mb-1">Monastery</h4>
-                              <p className="text-sm text-muted-foreground">{item.monastery}</p>
-                            </div>
-                            <div>
-                              <h4 className="font-medium mb-1">Date</h4>
-                              <p className="text-sm text-muted-foreground">{item.date}</p>
-                            </div>
-                            <div>
-                              <h4 className="font-medium mb-1">Period</h4>
-                              <p className="text-sm text-muted-foreground">{item.century}</p>
-                            </div>
-                            <div>
-                              <h4 className="font-medium mb-1">Category</h4>
-                              <p className="text-sm text-muted-foreground">{item.category}</p>
-                            </div>
-                            <div>
-                              <h4 className="font-medium mb-1">Language</h4>
-                              <p className="text-sm text-muted-foreground">{item.language}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-2">
-                            <Badge variant="outline">{item.category}</Badge>
-                            <Badge variant="secondary">{item.century}</Badge>
-                            <Badge className="bg-primary/10 text-primary">{item.monastery}</Badge>
-                          </div>
-                        </div>
-                      </div>
-                    </DialogContent>
+                    <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+  <DialogHeader>
+    <DialogTitle className="text-2xl monastery-heading">
+      {item.title}
+    </DialogTitle>
+  </DialogHeader>
+
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    {/* Left side: image or PDF */}
+    <div className="space-y-4">
+      {item.pdf_url ? (
+        <div className="aspect-[3/4] overflow-hidden rounded-lg bg-gray-50">
+          {/* PDF Viewer */}
+          <iframe
+            src={item.pdf_url}
+            title={item.title}
+            className="w-full h-[500px] rounded-lg"
+          />
+        </div>
+      ) : (
+        <div className="aspect-[3/4] overflow-hidden rounded-lg">
+          <img
+            src={item.image_url}
+            alt={item.title}
+            className="h-full w-full object-cover"
+          />
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        {item.pdf_url ? (
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1"
+            onClick={() => window.open(item.pdf_url, "_blank")}
+          >
+            <Maximize className="h-4 w-4 mr-2" />
+            Open PDF
+          </Button>
+        ) : (
+          <Button size="sm" className="flex-1">
+            <Maximize className="h-4 w-4 mr-2" />
+            Full Screen
+          </Button>
+        )}
+
+        <Button
+          size="sm"
+          variant="outline"
+          className="flex-1"
+          onClick={() => {
+            const link = document.createElement("a");
+            link.href = item.pdf_url || item.image_url;
+            link.download = `${item.title}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+          }}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Download
+        </Button>
+      </div>
+    </div>
+
+    {/* Right side: metadata */}
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold mb-3">Description</h3>
+        <p className="text-muted-foreground leading-relaxed">
+          {item.description}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <h4 className="font-medium mb-1">Monastery</h4>
+          <p className="text-sm text-muted-foreground">{item.monastery}</p>
+        </div>
+        <div>
+          <h4 className="font-medium mb-1">Date</h4>
+          <p className="text-sm text-muted-foreground">{item.date}</p>
+        </div>
+        <div>
+          <h4 className="font-medium mb-1">Period</h4>
+          <p className="text-sm text-muted-foreground">{item.century}</p>
+        </div>
+        <div>
+          <h4 className="font-medium mb-1">Category</h4>
+          <p className="text-sm text-muted-foreground">{item.category}</p>
+        </div>
+        <div>
+          <h4 className="font-medium mb-1">Language</h4>
+          <p className="text-sm text-muted-foreground">{item.language}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="outline">{item.category}</Badge>
+        <Badge variant="secondary">{item.century}</Badge>
+        <Badge className="bg-primary/10 text-primary">{item.monastery}</Badge>
+      </div>
+    </div>
+  </div>
+</DialogContent>
+
                   </Dialog>
                 );
               })}
